@@ -1,0 +1,66 @@
+{
+  "name": "micro-open-api",
+  "version": "0.0.1",
+  "description": "Route using open API specification",
+  "repository": "https://github.com/tuckerconnelly/micro-open-api",
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": {
+    "test": "env $([ -f .env.test ] && cat .env.test | grep -v ^# | xargs) jest --detectOpenHandles --no-cache --testPathIgnorePatterns=__mocks__",
+    "prettier": "prettier --write 'src/**/*.js'",
+    "lint": "eslint 'src/**/*.js'"
+  },
+  "dependencies": {
+    "glob": "^7.1.4",
+    "js-yaml": "^3.13.1",
+    "ramda": "^0.26.1"
+  },
+  "devDependencies": {
+    "axios": "^0.19.0",
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.16.0",
+    "husky": "^2.3.0",
+    "jest": "^24.8.0",
+    "lint-staged": "^8.1.7",
+    "micro": "^9.3.4",
+    "prettier": "^1.17.1",
+    "test-listen": "^1.1.0"
+  },
+  "eslintConfig": {
+    "parser": "babel-eslint",
+    "extends": "eslint:recommended",
+    "env": {
+      "node": true,
+      "es6": true,
+      "jest": true
+    },
+    "rules": {
+      "no-console": 0
+    }
+  },
+  "prettier": {
+    "singleQuote": true
+  },
+  "lint-staged": {
+    "linters": {
+      "src/**/*.js": [
+        "npm run prettier -- ",
+        "npm run lint -- ",
+        "git add"
+      ]
+    }
+  },
+  "jest": {
+    "watchPathIgnorePatterns": [
+      "tmp",
+      "json"
+    ],
+    "forceExit": true
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "post-merge": "npm ci"
+    }
+  }
+}

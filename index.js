@@ -94,6 +94,8 @@ module.exports = function microOpenApi(baseSchema, modulesDir) {
   const operations = {};
 
   glob.sync(path.join(modulesDir, '/**/*.js')).forEach(f => {
+    if (f.includes('__tests__')) return;
+
     const module = require(path.resolve(f));
     Object.keys(module).forEach(k => {
       if (k === 'schema') return schemas.push(module[k]);

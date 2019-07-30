@@ -1,8 +1,10 @@
 const path = require('path');
 const url = require('url');
+
+const debug = require('debug')('micro-open-api');
 const Ajv = require('ajv');
 const _ = require('lodash');
-
+const qs = require('qs');
 const micro = require('micro');
 const yaml = require('js-yaml');
 const glob = require('glob');
@@ -106,8 +108,10 @@ module.exports = function microOpenApi(baseSchema, modulesDir) {
 
   return next => async (req, res, ...args) => {
     const parsed = url.parse(req.url);
+    debug('%O', { parsed });
+
     const endpointSchema = R.path(
-      ['paths', parsed.path, req.method.toLowerCase()],
+      ['paths', parsed.pathname, req.method.toLowerCase()],
       schema
     );
     if (!endpointSchema) return next(req, res, ...args);
@@ -115,6 +119,10 @@ module.exports = function microOpenApi(baseSchema, modulesDir) {
     const operation = operations[endpointSchema.operationId];
     if (!operation)
       throw new Error(`Operation for ${req.method} ${parsed.path} not found.`);
+
+    const params = qs.parse(url.parse(req.url).query);
+
+    debug('%O', { params });
 
     if (!endpointSchema.requestBody) return operation(req, res, ...args);
 

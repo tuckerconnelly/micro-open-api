@@ -6,7 +6,7 @@
   "license": "MIT",
   "main": "index.js",
   "scripts": {
-    "test": "env $([ -f .env.test ] && cat .env.test | grep -v ^# | xargs) jest --detectOpenHandles --no-cache --testPathIgnorePatterns=__mocks__",
+    "test": "DEBUG=micro-open-api* MICRO_OPEN_API_IGNORE_PATHNAMES_WITH= jest --testPathIgnorePatterns=__mocks__",
     "prettier": "prettier --write 'src/**/*.js'",
     "lint": "eslint 'src/**/*.js'"
   },
@@ -23,6 +23,7 @@
     "husky": "^2.3.0",
     "jest": "^24.8.0",
     "lint-staged": "^8.1.7",
+    "micro": "^9.3.4",
     "prettier": "^1.17.1",
     "test-listen": "^1.1.0"
   },

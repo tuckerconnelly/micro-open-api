@@ -4,7 +4,7 @@ const micro = require('micro');
 
 const microOpenApi = require('../../index');
 
-module.exports = micro(
+module.exports = () => micro(
   microOpenApi(
     `
 openapi: "3.0.0"

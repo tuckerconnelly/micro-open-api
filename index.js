@@ -36,10 +36,18 @@ function validate(schema, data) {
     } else if (curr.keyword === 'type') {
       const name = curr.dataPath.split('.').pop();
 
+      const indefiniteArticle = ['a', 'e', 'i', 'o', 'u'].includes(
+        curr.params.type.toLowerCase()[0]
+      )
+        ? 'an'
+        : 'a';
+
       _.set(
         theNew,
         `${curr.dataPath.slice(1)}`,
-        `${_.capitalize(_.startCase(name))} must be a ${curr.params.type}.`
+        `${_.capitalize(_.startCase(name))} must be ${indefiniteArticle} ${
+          curr.params.type
+        }.`
       );
       return theNew;
     } else if (curr.keyword === 'format') {
@@ -88,15 +96,33 @@ function validate(schema, data) {
     return prev;
   }, {});
 
-  return { errors };
+  return errors;
 }
+
+// By default, ignore pathnames with __tests__
+const ignorePathnamesWith =
+  process.env.MICRO_OPEN_API_IGNORE_PATHNAMES_WITH === undefined
+    ? ['__tests__']
+    : process.env.MICRO_OPEN_API_IGNORE_PATHNAMES_WITH.split(',').filter(
+        p => p
+      );
 
 module.exports = function microOpenApi(baseSchema, modulesDir) {
   const schemas = [baseSchema];
   const operations = {};
+  debug('Ignore pathnames with: %O', ignorePathnamesWith);
+
+  /*** Load all the schemas and functions ***/
 
   glob.sync(path.join(modulesDir, '/**/*.js')).forEach(f => {
-    if (f.includes('__tests__')) return;
+    if (
+      ignorePathnamesWith.reduce((prev, curr) => {
+        if (prev) return prev;
+        if (f.includes(curr)) return true;
+        return false;
+      }, false)
+    )
+      return;
 
     const module = require(path.resolve(f));
     Object.keys(module).forEach(k => {
@@ -105,25 +131,75 @@ module.exports = function microOpenApi(baseSchema, modulesDir) {
     });
   });
   const schema = schemas.map(yaml.safeLoad).reduce(R.mergeDeepRight);
+  debug('Schema: %O', schema);
+
+  /*** Middleware HOF ***/
 
   return next => async (req, res, ...args) => {
     const parsed = url.parse(req.url);
-    debug('%O', { parsed });
+    debug('Parsed URL: %O', parsed);
+    debug('Method: %s', req.method);
+
+    // Find the schema for the passed pathname and HTTP verb
 
     const endpointSchema = R.path(
       ['paths', parsed.pathname, req.method.toLowerCase()],
       schema
     );
+    debug('Endpoint schema %O', endpointSchema);
+    // Continue on if not found
     if (!endpointSchema) return next(req, res, ...args);
 
+    // Find the operation for the passed pathname
+
     const operation = operations[endpointSchema.operationId];
+    // Throw error if not found
     if (!operation)
       throw new Error(`Operation for ${req.method} ${parsed.path} not found.`);
 
+    // Validate the parameters
     const params = qs.parse(url.parse(req.url).query);
-
     debug('%O', { params });
 
+    if (endpointSchema.parameters) {
+      const errorArray = endpointSchema.parameters
+        .map(p => {
+          if (!params[p.name] && p.required) {
+            return { [p.name]: `"${p.name}" is required.` };
+          }
+
+          if (!params[p.name]) return null;
+
+          const errors = validate(p.schema, params[p.name]);
+
+          if (errors) {
+            if (errors['']) {
+              errors[p.name] = `"${p.name}"${errors['']}`;
+              delete errors[''];
+            }
+
+            return errors;
+          }
+
+          return null;
+        })
+        .filter(e => e);
+
+      if (errorArray.length) {
+        const errors = errorArray.reduce(
+          (prev, curr) => ({
+            ...prev,
+            ...curr
+          }),
+          {}
+        );
+        const error = new Error(JSON.stringify({ errors }));
+        error.statusCode = 422;
+        throw error;
+      }
+    }
+
+    // If there's no requestBody validation, run the operation
     if (!endpointSchema.requestBody) return operation(req, res, ...args);
 
     const contentType = req.headers['content-type']
@@ -153,7 +229,7 @@ module.exports = function microOpenApi(baseSchema, modulesDir) {
       );
 
       if (errors) {
-        const error = new Error(JSON.stringify(errors));
+        const error = new Error(JSON.stringify({ errors }));
         error.statusCode = 422;
         throw error;
       }
@@ -162,7 +238,7 @@ module.exports = function microOpenApi(baseSchema, modulesDir) {
     }
 
     throw new Error(
-      `Only application/json content type supported by micro-open-api, sorry. You sent: ${contentType}`
+      `Only application/json content type is supported by micro-open-api for requestBody validation. You sent: ${contentType}. Maybe submit a PR?`
     );
   };
 };

@@ -1,8 +1,8 @@
 exports.schema = `
 paths:
-  /test:
+  /test-json-body:
     post:
-      operationId: test
+      operationId: testJsonBody
       requestBody:
         required: true
         content:
@@ -32,6 +32,6 @@ paths:
 
 `;
 
-exports.test = async () => {
+exports.testJsonBody = async () => {
   return { ok: true };
 };

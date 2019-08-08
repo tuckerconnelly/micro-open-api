@@ -140,6 +140,8 @@ module.exports = function microOpenApi(baseSchema, modulesDir) {
     debug('Parsed URL: %O', parsed);
     debug('Method: %s', req.method);
 
+    if (parsed.pathname === '/open-api') return schema;
+
     // Find the schema for the passed pathname and HTTP verb
 
     const endpointSchema = R.path(

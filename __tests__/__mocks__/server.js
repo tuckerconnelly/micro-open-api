@@ -4,9 +4,10 @@ const micro = require('micro');
 
 const microOpenApi = require('../../index');
 
-module.exports = () => micro(
-  microOpenApi(
-    `
+module.exports = () =>
+  micro(
+    microOpenApi(
+      `
 openapi: "3.0.0"
 info:
   version: 1.0.0
@@ -17,6 +18,8 @@ info:
 servers:
   - url: https://micro-open-api.com/api/v1
 `,
-    path.join(__dirname, './modules')
-  )((req, res) => micro.send(res, 404))
-);
+      path.join(__dirname, './modules')
+    )((req, res) => micro.send(res, 404))
+  );
+
+module.exports().listen(3004);

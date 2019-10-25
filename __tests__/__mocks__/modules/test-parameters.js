@@ -12,6 +12,10 @@ paths:
           required: true
           schema:
             type: integer
+        - name: boolean
+          required: true
+          schema:
+            type: boolean
 `;
 
 exports.testParameters = async () => {

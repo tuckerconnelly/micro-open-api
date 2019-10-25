@@ -16,7 +16,11 @@ const ajv = new Ajv({
   verbose: true
 });
 
-function validate(schema, data) {
+function validate(schema, rawData) {
+  const data = mapValuesDeep(rawData, value =>
+    typeof value === 'string' ? _.trim(value) : value
+  );
+
   const valid = ajv.validate(schema, data);
   if (valid) return null;
 
@@ -161,7 +165,37 @@ module.exports = function microOpenApi(baseSchema, modulesDir) {
       throw new Error(`Operation for ${req.method} ${parsed.path} not found.`);
 
     // Validate the parameters
-    const params = qs.parse(url.parse(req.url).query);
+    const params = qs.parse(url.parse(req.url).query, {
+      // Copied from https://github.com/ljharb/qs/issues/91#issuecomment-437926409
+      decoder(str, decoder, charset) {
+        const strWithoutPlus = str.replace(/\+/g, ' ');
+        if (charset === 'iso-8859-1') {
+          // unescape never throws, no try...catch needed:
+          return strWithoutPlus.replace(/%[0-9a-f]{2}/gi, unescape);
+        }
+
+        if (/^(\d+|\d*\.\d+)$/.test(str)) {
+          return parseFloat(str);
+        }
+
+        const keywords = {
+          true: true,
+          false: false,
+          null: null,
+          undefined
+        };
+        if (str in keywords) {
+          return keywords[str];
+        }
+
+        // utf-8
+        try {
+          return decodeURIComponent(strWithoutPlus);
+        } catch (e) {
+          return strWithoutPlus;
+        }
+      }
+    });
     debug('%O', { params });
 
     if (endpointSchema.parameters) {
@@ -226,13 +260,9 @@ module.exports = function microOpenApi(baseSchema, modulesDir) {
     }
 
     if (contentType === 'application/json') {
-      const data = mapValuesDeep(await micro.json(req), value =>
-        typeof value === 'string' ? _.trim(value) : value
-      );
-
       const errors = validate(
         endpointSchema.requestBody.content[contentType].schema,
-        data
+        await micro.json(req)
       );
 
       if (errors) {

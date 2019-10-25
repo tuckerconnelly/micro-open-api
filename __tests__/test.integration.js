@@ -40,7 +40,9 @@ it('throws proper errors for parameters', async () => {
   const url = await listen(server());
 
   try {
-    await axios.get(`${url}/test-parameters?integer=not-an-integer`);
+    await axios.get(
+      `${url}/test-parameters?integer=not-an-integer&boolean=true`
+    );
     assert(false, `Shouldn't have got here.`);
   } catch (err) {
     expect(err.response.data).toEqual({

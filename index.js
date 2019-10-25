@@ -16,11 +16,7 @@ const ajv = new Ajv({
   verbose: true
 });
 
-function validate(schema, rawData) {
-  const data = mapValuesDeep(rawData, value =>
-    typeof value === 'string' ? _.trim(value) : value
-  );
-
+function validate(schema, data) {
   const valid = ajv.validate(schema, data);
   if (valid) return null;
 
@@ -230,9 +226,13 @@ module.exports = function microOpenApi(baseSchema, modulesDir) {
     }
 
     if (contentType === 'application/json') {
+      const data = mapValuesDeep(await micro.json(req), value =>
+        typeof value === 'string' ? _.trim(value) : value
+      );
+
       const errors = validate(
         endpointSchema.requestBody.content[contentType].schema,
-        await micro.json(req)
+        data
       );
 
       if (errors) {

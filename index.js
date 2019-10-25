@@ -9,13 +9,18 @@ const micro = require('micro');
 const yaml = require('js-yaml');
 const glob = require('glob');
 const R = require('ramda');
+const mapValuesDeep = require('map-values-deep');
 
 const ajv = new Ajv({
   allErrors: true,
   verbose: true
 });
 
-function validate(schema, data) {
+function validate(schema, rawData) {
+  const data = mapValuesDeep(rawData, value =>
+    typeof value === 'string' ? _.trim(value) : value
+  );
+
   const valid = ajv.validate(schema, data);
   if (valid) return null;
 

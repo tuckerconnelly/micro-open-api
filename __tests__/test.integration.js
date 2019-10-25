@@ -11,6 +11,7 @@ it('throws proper errors for json bodies', async () => {
   try {
     await axios.post(`${url}/test-json-body`, {
       emailFormat: 'asdf',
+      emailFormatSpace: '  asdf@asdf.com',
       minLength: '1',
       maxLength: '1234',
       nestedTest: {

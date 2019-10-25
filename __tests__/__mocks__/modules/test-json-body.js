@@ -15,6 +15,9 @@ paths:
                 emailFormat:
                   type: string
                   format: email
+                emailFormatSpace:
+                  type: string
+                  format: email
                 minLength:
                   type: string
                   minLength: 2
